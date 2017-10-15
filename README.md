@@ -1,2 +1,14 @@
-# ansible-docker
-A few playbooks for update git projects, dockerize them and run somewhere
+# README #
+
+
+
+### Configure ###
+
+
+
+### Make images and Push to registry ###
+
+
+
+### Pull images on some server and run the project ###
+

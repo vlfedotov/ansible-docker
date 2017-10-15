@@ -1,0 +1,58 @@
+---
+
+version: '3'
+
+volumes:
+  todobackend-${ROLE}-mysqldata:
+    external: true
+  app-admin-static:
+    driver: local
+
+networks:
+  todobackend-${ROLE}-network:
+
+services:
+  todobackend-db:
+    networks:
+      - todobackend-${ROLE}-network
+    image: mysql:latest
+    hostname: todobackend-db
+    volumes:
+      - todobackend-${ROLE}-mysqldata:/var/lib/mysql
+    expose:
+      - "3306"
+    environment:
+      - MYSQL_DATABASE=${MAIN_DATABASE}
+      - MYSQL_ROOT_PASSWORD=123456
+    command: 'mysqld --character-set-server=utf8 --collation-server=utf8_general_ci --max-allowed-packet=1073741824'
+
+  todobackend-calculator-app:
+    networks:
+      - todobackend-${ROLE}-network
+    image: ${DOCKER_REGISTRY}/todobackend/todobackend-app:${VERSION}
+    hostname: todobackend-app
+    expose:
+      - "8000"
+    depends_on:
+      - todobackend-db
+    environment:
+      - DATABASE_URL=mysql://root:123456@todobackend-db/${MAIN_DATABASE}
+      - ALLOWED_HOSTS=['*']
+      - DJANGO_SETTINGS_MODULE=settings
+    volumes:
+      - app-admin-static:/opt/app/static
+      - ./app/media:/opt/app/media
+    command: 'gunicorn wsgi:application --bind 0.0.0.0:8000 --workers 5 --log-level=debug --capture-output'
+
+  todobackend-web:
+    networks:
+      - todobackend-${ROLE}-network
+    image: ${DOCKER_REGISTRY}/todobackend/todobackend-web:${VERSION}
+    hostname: todobackend-web
+    ports:
+      - "${HOSTPORT}:80"
+    volumes:
+      - app-admin-static:/opt/app/static
+      - ./app/media:/opt/app/media
+    depends_on:
+      - todobackend-app
